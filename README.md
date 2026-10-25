@@ -10,8 +10,8 @@
 Wayland и порталы настраивает штатный модуль NixOS `programs.niri`.
 Xorg-сессия не включена.
 
-На этом этапе нет оболочки рабочего стола, панели, меню приложений и уведомлений.
-Это ожидаемый минимальный рабочий стол.
+Добавлена собственная начальная панель Quickshell: запуск приложений, часы и выход.
+Меню всех приложений, уведомления и системный трей пока не реализованы.
 Noctalia, старые модули и настройки исходного проекта удалены из текущего дерева.
 Предыдущие версии доступны в истории Git.
 
@@ -38,6 +38,10 @@ Noctalia, старые модули и настройки исходного п�
 | home/nikolaev/default.nix | Общие настройки Home Manager |
 | home/nikolaev/niri/config.kdl | Клавиши и минимальный вид Niri |
 | home/nikolaev/ghostty.nix | Терминал |
+| home/nikolaev/quickshell/default.nix | Пакет Quickshell, файлы и автозапуск |
+| home/nikolaev/quickshell/config/shell.qml | Главный файл оболочки |
+| home/nikolaev/quickshell/config/components/ | Панель, кнопки, часы |
+| home/nikolaev/quickshell/config/theme/ | Цвета, размеры, шрифты |
 
 Системные настройки и пользовательское окружение разделены.
 NixOS и Home Manager используют согласованные ветки 26.05.
@@ -263,3 +267,65 @@ journalctl -u nix-gc.service --no-pager -n 50
 ```bash
 sudo systemctl start nix-gc.service
 ```
+
+## Начальная оболочка Quickshell
+
+Используется пакет quickshell из той же ветки nixpkgs 26.05.
+Новых flake inputs и отдельного набора Qt-зависимостей не требуется.
+
+Панель располагается сверху с отступом 8 px, имеет высоту 48 px и закругление 12 px.
+Niri резервирует для неё место, окна не должны перекрывать панель.
+Создаётся отдельная панель на каждом экране; имена и разрешения мониторов
+в конфигурации не зашиты. На небольшом экране подписи кнопок сокращаются.
+
+Кнопки: Ghostty, Firefox, Nautilus и выход из Niri с подтверждением.
+По центру находятся дата и время. Начальная версия не содержит рабочего стола
+с иконками, трея, уведомлений, громкости и списка рабочих пространств.
+
+Файлы QML устанавливаются Home Manager в ~/.config/quickshell/niri.
+Редактируйте исходники в ~/niri-clean/home/nikolaev/quickshell/config,
+затем применяйте через nix-update. Файлы в ~/.config управляются Nix.
+
+Для первого применения и запуска в текущей сессии:
+
+```bash
+nix-update
+systemctl --user daemon-reload
+systemctl --user start quickshell.service
+```
+
+После следующего входа Quickshell запускается автоматически вместе с
+graphical-session.target и останавливается при выходе.
+В config.kdl отдельного запуска Quickshell нет — второй экземпляр не создаётся.
+После последующих изменений QML выполните:
+
+```bash
+systemctl --user restart quickshell.service
+```
+
+Проверка и журнал:
+
+```bash
+systemctl --user status quickshell.service
+journalctl --user -u quickshell.service -b --no-pager -n 80
+```
+
+Чтобы увидеть ошибку запуска прямо в терминале, сначала остановите службу:
+
+```bash
+systemctl --user stop quickshell.service
+quickshell -c niri
+```
+
+Закончите ручной запуск через Ctrl+C и верните службу командой
+`systemctl --user start quickshell.service`.
+
+Временное отключение панели: `systemctl --user stop quickshell.service`.
+Горячие клавиши Niri при этом продолжают работать.
+
+Проверена структура QML-компонентов и подключение модуля; Qt/Quickshell и Nix
+в среде подготовки отсутствуют. Проверка сборки и фактического отображения
+панели выполняется на ВМ после применения.
+
+Документация:
+https://quickshell.org/docs/
