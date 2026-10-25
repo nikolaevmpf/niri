@@ -1,3 +1,3 @@
 { ... }: {
-  imports = [ ./niri.nix ./pipewire.nix ./login.nix ];
+  imports = [ ./niri.nix ./pipewire.nix ./login.nix ./firefox.nix ];
 }

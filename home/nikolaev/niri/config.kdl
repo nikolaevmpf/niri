@@ -26,6 +26,7 @@ spawn-at-startup "ghostty"
 binds {
     Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+B hotkey-overlay-title="Firefox" { spawn "firefox"; }
     Mod+Q { close-window; }
 
     Mod+Left { focus-column-left; }
