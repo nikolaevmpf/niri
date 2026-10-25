@@ -1,8 +1,6 @@
 { pkgs, ... }: {
   programs.niri = {
     enable = true;
-    # Use the GTK file chooser; do not install a file manager yet.
-    useNautilus = false;
   };
   hardware.graphics.enable = true;
   # Niri's NixOS module configures Wayland, D-Bus and desktop portals.
