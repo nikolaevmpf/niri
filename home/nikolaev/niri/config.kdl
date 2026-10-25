@@ -22,6 +22,11 @@ layout {
     }
     background-color "#181818"
 }
+// Round and clip all application windows.
+window-rule {
+    geometry-corner-radius 12
+    clip-to-geometry true
+}
 spawn-at-startup "ghostty"
 binds {
     Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
