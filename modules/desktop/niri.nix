@@ -3,6 +3,7 @@
     enable = true;
   };
   hardware.graphics.enable = true;
+  programs.dconf.enable = true;
   # Niri's NixOS module configures Wayland, D-Bus and desktop portals.
   security.polkit.enable = true;
   fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
