@@ -1,7 +1,9 @@
-# Hardware configuration supplied by nikolaev for this VM only.
+# VM hardware supplied by nikolaev. Replace with the local generated file if needed.
 { lib, modulesPath, ... }: {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
-  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk" ];
+  boot.initrd.availableKernelModules = [
+    "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk"
+  ];
   boot.initrd.kernelModules = [];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [];

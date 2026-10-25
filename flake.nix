@@ -1,38 +1,36 @@
 {
-  description = "NixOS + Niri: nikolaev QEMU/KVM test VM";
+  description = "Minimal modular NixOS with Niri";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-    # Use the upstream dependency set; do not follow our stable nixpkgs.
-    noctalia.url = "github:noctalia-dev/noctalia/40a82f21ab5f135f4324b1862f7b7732af581856";
   };
-  outputs = { nixpkgs, home-manager, noctalia, ... }:
+  outputs = { self, nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = nixpkgs.legacyPackages.${system};
     in {
-      nixosConfigurations.niri-vm = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          ./configuration.nix
+          ./hosts/vm
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "before-niri";
-            home-manager.users.nikolaev = {
-              imports = [ noctalia.homeModules.default ./modules/home/home.nix ];
-            };
+            home-manager.users.nikolaev = import ./home/nikolaev;
           }
         ];
       };
-      checks.${system}.desktop-config = pkgs.runCommand "validate-desktop-config" {
-        nativeBuildInputs = [ pkgs.niri ];
-      } ''
-        export HOME=$TMPDIR
-        niri validate -c ${./modules/home/programs/niri/config.kdl}
-        touch $out
-      '';
+      checks.${system} = {
+        niri-config = pkgs.runCommand "validate-niri-config" {
+          nativeBuildInputs = [ pkgs.niri ];
+        } ''
+          export HOME=$TMPDIR
+          niri validate -c ${./home/nikolaev/niri/config.kdl}
+          touch $out
+        '';
+      };
     };
 }

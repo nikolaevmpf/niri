@@ -1,176 +1,178 @@
-# NixOS + Niri + Noctalia — тестовая QEMU/KVM VM
+# NixOS + Niri: минимальная модульная конфигурация
 
-Адаптация [JotaFab/s13los](https://github.com/JotaFab/s13los), происхождение — [UPSTREAM.md](UPSTREAM.md).
+Начинаем с чистой основы. Активный профиль: **vm**, имя компьютера: **niri-vm**,
+пользователь: **nikolaev**, NixOS **26.05**, архитектура **x86_64-linux**.
 
-Профиль: `niri-vm`; пользователь: `nikolaev`; NixOS 26.05; UEFI/systemd-boot.
-Сохранены UUID и структура Btrfs существующей ВМ, без форматирования.
-Пароль существующего пользователя сохраняется; автоматический вход не включён.
-Home Manager впервые настраивается с stateVersion 26.05.
+Первый этап: Niri (Wayland-композитор), PipeWire + WirePlumber, терминал Ghostty,
+минимальный экран входа greetd/tuigreet. Сразу после входа запускается Ghostty.
+Установлены Git, Nano и pciutils для обслуживания конфигурации.
+Wayland и порталы настраивает штатный модуль NixOS `programs.niri`.
+Xorg-сессия не включена.
 
-Рабочий стол: Niri + Noctalia v5, Ghostty, Firefox, Nautilus,
-PipeWire, блокировка swaylock. EN/RU: Alt+Shift. Тёмная тема Catppuccin.
-Noctalia заменяет Waybar, Wofi и SwayNC: панель, меню приложений и уведомления.
-Графика Mesa без принудительного NVIDIA-драйвера.
-QEMU guest agent и SPICE agent работают при наличии соответствующих каналов ВМ.
+На этом этапе нет оболочки рабочего стола, панели, меню приложений, уведомлений,
+браузера и файлового менеджера. Это ожидаемый минимальный рабочий стол.
+Noctalia, старые модули и настройки исходного проекта удалены из текущего дерева.
+Предыдущие версии доступны в истории Git.
 
-## Перед применением
+## Структура
 
-Сделайте снимок выключенной ВМ средствами гипервизора.
-Для Niri рекомендуется Virtio video с 3D acceleration и SPICE/OpenGL,
-если хост и клиент поддерживают этот режим. Пока фактическая видеокарта не проверена,
-запуск графической сессии не гарантирован. Не меняйте настройки работающей ВМ.
+| Путь | Назначение |
+|---|---|
+| flake.nix | Зависимости и профиль vm |
+| hosts/vm/default.nix | Состав профиля и версия начальной установки |
+| hosts/vm/hardware-configuration.nix | UUID, Btrfs, аппаратные модули ВМ |
+| hosts/vm/boot.nix | UEFI, systemd-boot и ядро ВМ |
+| hosts/vm/guest.nix | Гостевые службы QEMU/SPICE |
+| modules/system/ | Nix, локаль, сеть, пользователь, базовые утилиты |
+| modules/desktop/niri.nix | Wayland/Niri, графика, шрифт и Polkit |
+| modules/desktop/pipewire.nix | Звук PipeWire/WirePlumber |
+| modules/desktop/login.nix | Вход с паролем через greetd/tuigreet |
+| home/nikolaev/default.nix | Общие настройки Home Manager |
+| home/nikolaev/niri/config.kdl | Клавиши и минимальный вид Niri |
+| home/nikolaev/ghostty.nix | Терминал |
 
-Проверьте модель внутри ВМ: `lspci -nnk | rg -A3 -i 'vga|display|3d'`.
-Если rg отсутствует, выполните просто `lspci -nnk`.
-Без SPICE-канала гостевой агент SPICE не обеспечит обмен буфером.
+Системные настройки и пользовательское окружение разделены.
+NixOS и Home Manager используют согласованные ветки 26.05.
+`system.stateVersion` ВМ сохранён как 26.05; это не переключатель обновления пакетов.
+Пароль существующего nikolaev сохраняется, автоматический вход не включён.
+SSH и NetworkManager сохранены; межсетевой экран включён.
 
-## Установка на существующую ВМ
+## Установка на подготовленную ВМ
 
-Команды выполняются под пользователем nikolaev, по одной строке:
+Диск не форматируется. UUID и структура Btrfs взяты из предоставленного
+hardware-configuration.nix. Перед первым применением сделайте снимок ВМ.
+Проверьте Virtio video и, если поддерживается хостом, 3D acceleration и SPICE/OpenGL.
+
+Ниже используется **новый каталог ~/niri-clean**, чтобы не затронуть локальные
+файлы прежней конфигурации. Если он уже существует, выберите другое свободное имя.
+Выполняйте команды по очереди под пользователем nikolaev:
 
 ```bash
 sudo cp -a /etc/nixos "/etc/nixos.before-niri-$(date +%Y%m%d-%H%M%S)"
 nix-shell -p git
-git clone https://github.com/nikolaevmpf/niri.git ~/niri
-cd ~/niri
-cp /etc/nixos/hardware-configuration.nix ./hardware-configuration.nix
-git add hardware-configuration.nix
+git clone https://github.com/nikolaevmpf/niri.git ~/niri-clean
+cd ~/niri-clean
+cp /etc/nixos/hardware-configuration.nix hosts/vm/hardware-configuration.nix
+git add hosts/vm/hardware-configuration.nix
 nix --extra-experimental-features "nix-command flakes" flake lock
 git add flake.lock
 nix --extra-experimental-features "nix-command flakes" flake check
-sudo nixos-rebuild build --flake .#niri-vm
-sudo nixos-rebuild boot --flake .#niri-vm
+sudo nixos-rebuild build --flake .#vm
+```
+
+Если любая команда завершилась ошибкой, остановитесь и разберите её до следующего шага.
+Первая команда nix-shell открывает оболочку с Git — продолжайте команды внутри неё.
+flake.lock создаётся на ВМ при первом запуске; он фиксирует версии зависимостей.
+После успешной сборки сохраните lock и аппаратный файл коммитом в репозитории.
+Не выполняйте `nix flake update` для обычного применения правок.
+
+После успешной проверки и сборки:
+
+```bash
+sudo nixos-rebuild boot --flake .#vm
 sudo reboot
 ```
 
-Первое `nix-shell` открывает вложенную оболочку с Git; продолжайте команды в ней.
-Требуется интернет до GitHub, channels.nixos.org, кеша NixOS и noctalia.cachix.org. Первый flake lock фиксирует версии —
-сохраните его коммитом в репозитории после успешной проверки.
-В опубликованном проекте lock пока нет: среда подготовки не содержит Nix.
-Обновлять зависимости без необходимости не нужно.
+Войдите через tuigreet с именем nikolaev и существующим паролем.
+Команда запуска уже настроена на niri-session.
+После входа должен появиться терминал Ghostty на тёмном фоне.
 
-В Ly выберите сессию Niri и войдите с существующим паролем.
-Профиль применяется из ~/niri; /etc/nixos остаётся резервной конфигурацией,
-обычный rebuild без --flake использует её.
+Конфигурация применяется из ~/niri-clean, а /etc/nixos остаётся резервной.
+Последующие rebuild выполняйте с `--flake .#vm`, находясь в каталоге проекта.
+Профиль прежнего проекта `niri-vm` больше не используется: теперь профиль **vm**.
 
-## Клавиши
+## Управление
 
-Mod — клавиша Super/Windows. Если комбинации перехватывает хост,
-включите захват клавиатуры в просмотрщике ВМ.
+Super — клавиша Windows. Если хост перехватывает сочетания, используйте захват
+клавиатуры просмотрщиком ВМ.
 
 | Клавиши | Действие |
 |---|---|
-| Super+T | Ghostty |
-| Super+B | Firefox |
-| Super+E | Файлы |
-| Super+D | Меню приложений Noctalia |
-| Super+S | Центр управления Noctalia |
-| Super+Shift+S | Настройки Noctalia |
-| Super+Shift+X | Меню выхода / перезагрузки |
-| Super+W | Показать / скрыть панель |
+| Super+Enter или Super+T | Новый терминал Ghostty |
 | Super+Q | Закрыть окно |
-| Super+стрелки | Перемещение фокуса |
-| Super+Ctrl+стрелки | Перемещение окон/колонок |
-| Super+PageUp/PageDown | Рабочие пространства |
-| Super+F / Super+Shift+F | Развернуть колонку / полный экран |
+| Super+стрелки | Переместить фокус |
+| Super+Ctrl+стрелки | Переместить окно/колонку |
+| Super+PageUp / PageDown | Перейти между рабочими пространствами |
+| Super+Ctrl+PageUp / PageDown | Перенести колонку между рабочими пространствами |
+| Super+F | Развернуть колонку |
+| Super+Shift+F | Полный экран |
 | Super+V | Плавающее окно |
-| Super+Shift+L | Блокировка |
-| Super+Shift+E | Выход с подтверждением |
-| Super+Shift+/ | Подсказка клавиш |
+| Super+R | Изменить ширину колонки |
+| Super+Shift+/ | Показать подсказку клавиш |
+| Super+Shift+E | Выйти из сессии с подтверждением |
 | Alt+Shift | EN/RU |
-| Print | Снимок экрана |
 
-## Проверка и диагностика
+Настройка раскладок в Wayland находится в config.kdl. Настройка xkb в системном
+модуле оставлена согласованной с ней; сама по себе она не включает Xorg.
+Блокировщик экрана пока не установлен: для завершения сеанса используйте выход.
 
-`nix flake check` проверяет синтаксис Niri, а также вычисление NixOS.
-`nixos-rebuild build` собирает всю систему, но не подтверждает работу GPU в ВМ.
-В среде подготовки доступна только статическая проверка файлов — полная сборка и
-проверка входа в сессию должны быть выполнены на ВМ.
+## Проверка
+
+`nix flake check` вычисляет конфигурацию flake и проверяет config.kdl командой
+`niri validate`. Полную систему собирает отдельный `nixos-rebuild build`.
+При подготовке проверены ссылки на локальные модули и структура минимального
+профиля. Nix в среде подготовки отсутствует: полная сборка и проверка графики
+должны быть выполнены на ВМ.
+
+После входа в Niri:
 
 ```bash
 niri validate
 niri msg outputs
-systemctl --user status niri
-journalctl --user -b -u niri --no-pager
-systemctl status ly --no-pager
 wpctl status
+systemctl --user status pipewire wireplumber
+systemctl --user status polkit-agent
+systemctl status greetd
 ```
 
-Если графика не запускается: перейдите в TTY (Ctrl+Alt+F3, при необходимости через
-меню отправки клавиш просмотрщика), войдите и получите `lspci -nnk` и журнал Niri.
-Для проверки Virtio/3D на хосте нужны параметры Video и Display.
+`wpctl status` должен показывать доступные аудиоустройства. Для воспроизведения
+звука виртуальная машина должна иметь виртуальную звуковую карту.
 
-## Изменения и откат
-
-После правок:
+При ошибке сессии перейдите в TTY: Ctrl+Alt+F3, при необходимости через меню
+отправки клавиш просмотрщика. После входа получите журналы:
 
 ```bash
-cd ~/niri
+journalctl -b -u greetd --no-pager
+journalctl --user -b -u niri --no-pager
+lspci -nnk
+```
+
+## Последующие изменения
+
+Добавляйте одну функцию за раз: отдельный модуль, проверка, сборка, применение.
+Например, системная программа — новый файл в modules/desktop с импортом
+в modules/desktop/default.nix; пользовательские настройки — в home/nikolaev.
+
+```bash
+cd ~/niri-clean
 nix flake check
-sudo nixos-rebuild build --flake .#niri-vm
-sudo nixos-rebuild boot --flake .#niri-vm
+sudo nixos-rebuild build --flake .#vm
+sudo nixos-rebuild boot --flake .#vm
 sudo reboot
 ```
 
-При неудачной загрузке выберите предыдущую генерацию NixOS в меню systemd-boot
-(при запуске удерживайте Space). Команда отката из TTY:
+## Перенос на физический компьютер
+
+Не копируйте аппаратный профиль ВМ на физическую машину.
+Создадим отдельный hosts/<имя>, добавим его в nixosConfigurations и подключим
+общие modules/system, modules/desktop и home/nikolaev.
+На целевой машине потребуются собственные:
+- hardware-configuration.nix и UUID дисков;
+- параметры загрузчика и графического адаптера;
+- system.stateVersion, соответствующая начальной установке этой машины.
+
+Модули guest.nix и boot.nix ВМ подключаются только из hosts/vm.
+Так изменения окружения останутся общими, а аппаратные настройки — раздельными.
+
+## Откат
+
+При неудачной загрузке удерживайте Space при старте и выберите предыдущую
+генерацию NixOS в systemd-boot. Из TTY можно выполнить:
 
 ```bash
 sudo nixos-rebuild switch --rollback
 ```
 
-Home Manager создаёт резервные копии конфликтующих файлов с суффиксом
-`.before-niri`. Если такая копия уже существует, переместите её в безопасное место,
-прежде чем повторять активацию. Для возврата пользовательских настроек при
-необходимости восстановите эти копии вручную.
-
-## Noctalia
-
-Используется актуальная Noctalia v5 из официального репозитория noctalia-dev/noctalia,
-коммит 40a82f21ab5f135f4324b1862f7b7732af581856 (из ветки cachix).
-Это текущая версия проекта, ранее известного как Noctalia Shell; v4 на Quickshell —
-отдельная legacy-ветка. Команды v4 `qs -c noctalia-shell` здесь не используются.
-
-У Noctalia отдельный upstream nixpkgs unstable, основная NixOS остаётся 26.05.
-Кеш добавлен с официальным публичным ключом. При первом применении кеш ещё может
-быть не активен в старой системе, поэтому возможна сборка Noctalia из исходников.
-
-Настройки по умолчанию: modules/home/programs/noctalia.nix.
-Home Manager генерирует ~/.config/noctalia/config.toml с проверкой конфигурации при сборке.
-Изменения через интерфейс сохраняются отдельно в ~/.local/state/noctalia/settings.toml
-и могут перекрывать значения из Nix. Автозапуск выполняет только Niri.
-
-Блокировка Noctalia отключена: Super+Shift+L по-прежнему запускает swaylock.
-Polkit обслуживает существующий GNOME agent.
-В ВМ нет физических Wi-Fi/Bluetooth-устройств и батареи; соответствующие функции
-не появятся от одной установки оболочки. NetworkManager и UPower включены.
-
-Обновление уже клонированного проекта (сохраните любые собственные правки коммитом
-перед git pull; локальный flake.lock обычно не мешает, поскольку на сервере его нет):
-
-```bash
-cd ~/niri
-git pull --ff-only
-nix --extra-experimental-features "nix-command flakes" flake lock
-git add flake.lock
-nix --extra-experimental-features "nix-command flakes" flake check
-sudo nixos-rebuild build --flake .#niri-vm
-sudo nixos-rebuild boot --flake .#niri-vm
-sudo reboot
-```
-
-Диагностика в работающей сессии:
-
-```bash
-noctalia msg status
-noctalia msg settings-open
-tail -n 100 ~/.cache/noctalia/noctalia.log
-```
-
-Если Noctalia не стартовала, откройте Ghostty (Super+T) и выполните `noctalia`,
-чтобы увидеть ошибку. Для обновления закреплённой версии измените URL в flake.nix
-на нужный коммит; затем выполните flake lock и проверки.
-
-Официальные инструкции:
-https://docs.noctalia.dev/noctalia/getting-started/nixos/
-https://docs.noctalia.dev/noctalia/compositor-settings/niri/
+Home Manager сохраняет конфликтующие пользовательские файлы с суффиксом
+.before-niri. Если такая копия уже существует, сначала переместите её в безопасное
+место. Это не требует удаления домашнего каталога.

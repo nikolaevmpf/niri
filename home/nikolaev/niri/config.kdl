@@ -1,0 +1,54 @@
+// Minimal Niri configuration. No hardcoded monitor names or resolutions.
+input {
+    keyboard {
+        xkb {
+            layout "us,ru"
+            options "grp:alt_shift_toggle"
+        }
+    }
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+layout {
+    gaps 8
+    center-focused-column "on-overflow"
+    default-column-width { proportion 0.5; }
+    focus-ring {
+        width 2
+        active-color "#89b4fa"
+        inactive-color "#45475a"
+    }
+    background-color "#181818"
+}
+spawn-at-startup "ghostty"
+binds {
+    Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+Q { close-window; }
+
+    Mod+Left { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up { focus-window-up; }
+    Mod+Down { focus-window-down; }
+
+    Mod+Ctrl+Left { move-column-left; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+Up { move-window-up; }
+    Mod+Ctrl+Down { move-window-down; }
+
+    Mod+Page_Up { focus-workspace-up; }
+    Mod+Page_Down { focus-workspace-down; }
+    Mod+Ctrl+Page_Up { move-column-to-workspace-up; }
+    Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
+
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+V { toggle-window-floating; }
+    Mod+R { switch-preset-column-width; }
+
+    Mod+Shift+Slash { show-hotkey-overlay; }
+    Mod+Shift+E { quit; }
+    Ctrl+Alt+Delete { quit; }
+}
