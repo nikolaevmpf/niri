@@ -1,7 +1,14 @@
 pragma Singleton
 import QtQuick
 
+// Catppuccin Mocha, blue accent.
 QtObject {
+    readonly property color crust: "#11111b"
+    readonly property color mantle: "#181825"
+    readonly property color green: "#a6e3a1"
+    readonly property color peach: "#fab387"
+    readonly property color mauve: "#cba6f7"
+    readonly property color yellow: "#f9e2af"
     readonly property color background: "#1e1e2e"
     readonly property color surface: "#313244"
     readonly property color hover: "#45475a"

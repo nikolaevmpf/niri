@@ -24,7 +24,10 @@ layout {
         active-color "#89b4fa"
         inactive-color "#45475a"
     }
-    background-color "#181818"
+    background-color "#1e1e2e"
+}
+overview {
+    backdrop-color "#11111b"
 }
 // Round and clip all application windows.
 window-rule {

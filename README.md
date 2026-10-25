@@ -329,3 +329,33 @@ quickshell -c niri
 
 Документация:
 https://quickshell.org/docs/
+
+## Цветовая палитра Catppuccin
+
+Вариант: **Mocha**, акцент: **Blue**.
+
+| Элемент | Настройка |
+|---|---|
+| Quickshell | Цвета в home/nikolaev/quickshell/config/theme/Theme.qml |
+| Ghostty | Полная палитра из 16 ANSI-цветов в home/nikolaev/ghostty.nix |
+| Niri | Фон Mocha Base, фон обзора Crust, голубая рамка активного окна |
+| GTK3 | catppuccin-mocha-blue-standard |
+| GTK4 / Nautilus | Та же тема через gtk.gtk4.theme и CSS Home Manager |
+
+Основные цвета: фон #1e1e2e, текст #cdd6f4, акцент #89b4fa,
+поверхности #313244 и #45475a. Курсор Bibata Modern Classic сохранён.
+
+Применение:
+
+```bash
+nix-update
+systemctl --user restart quickshell.service
+```
+
+Затем закройте и откройте Nautilus и Ghostty. Для гарантированного перезапуска
+Nautilus можно выполнить `nautilus -q`, а затем `nautilus`.
+Внутри GTK4 применяется пользовательский CSS; отдельные элементы некоторых
+libadwaita-приложений могут отличаться. Qt-приложения и собственные темы браузера
+этим GTK-модулем не перенастраиваются.
+
+Полную сборку и отображение GTK-темы необходимо проверить на ВМ.

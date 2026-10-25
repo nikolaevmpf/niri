@@ -1,4 +1,15 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+let
+  catppuccinTheme = {
+    name = "catppuccin-mocha-blue-standard";
+    package = pkgs.catppuccin-gtk.override {
+      variant = "mocha";
+      accents = [ "blue" ];
+      size = "standard";
+      tweaks = [];
+    };
+  };
+in {
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
@@ -10,12 +21,10 @@
   gtk = {
     enable = true;
     colorScheme = "dark";
-    theme = {
-      name = "Adwaita-dark";
-      package = pkgs.gnome-themes-extra;
-    };
+    theme = catppuccinTheme;
+    # Home Manager imports the theme CSS for GTK4/libadwaita apps.
+    gtk4.theme = catppuccinTheme;
   };
 
-  # Modern libadwaita apps (including Nautilus) use this preference.
   dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 }
