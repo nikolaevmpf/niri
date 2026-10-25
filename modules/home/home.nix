@@ -1,15 +1,13 @@
 { pkgs, ... }: {
-  imports = [ ./programs/wofi.nix ./programs/ghostty.nix ];
+  imports = [ ./programs/noctalia.nix ./programs/ghostty.nix ];
   home.username = "nikolaev";
   home.homeDirectory = "/home/nikolaev";
   home.stateVersion = "26.05";
-  home.packages = with pkgs; [ waybar swaylock swaynotificationcenter ];
+  home.packages = with pkgs; [ swaylock ];
   programs.bash.enable = true;
   xdg.enable = true;
   xdg.userDirs = { enable = true; createDirectories = true; };
   xdg.configFile."niri/config.kdl".source = ./programs/niri/config.kdl;
-  xdg.configFile."waybar/config".source = ./programs/waybar/waybar.conf;
-  xdg.configFile."waybar/style.css".source = ./programs/waybar/waybar.css;
   gtk = {
     enable = true;
     theme = { name = "Adwaita-dark"; package = pkgs.gnome-themes-extra; };

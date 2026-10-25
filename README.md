@@ -1,4 +1,4 @@
-# NixOS + Niri — тестовая QEMU/KVM VM
+# NixOS + Niri + Noctalia — тестовая QEMU/KVM VM
 
 Адаптация [JotaFab/s13los](https://github.com/JotaFab/s13los), происхождение — [UPSTREAM.md](UPSTREAM.md).
 
@@ -7,8 +7,9 @@
 Пароль существующего пользователя сохраняется; автоматический вход не включён.
 Home Manager впервые настраивается с stateVersion 26.05.
 
-Рабочий стол: Niri, Waybar, Wofi, Ghostty, Firefox, Nautilus, уведомления,
-PipeWire, блокировка swaylock. EN/RU: Alt+Shift. Тёмная тема, чёрный фон панели.
+Рабочий стол: Niri + Noctalia v5, Ghostty, Firefox, Nautilus,
+PipeWire, блокировка swaylock. EN/RU: Alt+Shift. Тёмная тема Catppuccin.
+Noctalia заменяет Waybar, Wofi и SwayNC: панель, меню приложений и уведомления.
 Графика Mesa без принудительного NVIDIA-драйвера.
 QEMU guest agent и SPICE agent работают при наличии соответствующих каналов ВМ.
 
@@ -29,7 +30,7 @@ QEMU guest agent и SPICE agent работают при наличии соот�
 
 ```bash
 sudo cp -a /etc/nixos "/etc/nixos.before-niri-$(date +%Y%m%d-%H%M%S)"
-nix --extra-experimental-features "nix-command flakes" shell nixpkgs#git
+nix-shell -p git
 git clone https://github.com/nikolaevmpf/niri.git ~/niri
 cd ~/niri
 cp /etc/nixos/hardware-configuration.nix ./hardware-configuration.nix
@@ -42,8 +43,8 @@ sudo nixos-rebuild boot --flake .#niri-vm
 sudo reboot
 ```
 
-Первое `nix shell` открывает вложенную оболочку с Git; продолжайте команды в ней.
-Требуется интернет до GitHub и кеша NixOS. Первый flake lock фиксирует версии —
+Первое `nix-shell` открывает вложенную оболочку с Git; продолжайте команды в ней.
+Требуется интернет до GitHub, channels.nixos.org, кеша NixOS и noctalia.cachix.org. Первый flake lock фиксирует версии —
 сохраните его коммитом в репозитории после успешной проверки.
 В опубликованном проекте lock пока нет: среда подготовки не содержит Nix.
 Обновлять зависимости без необходимости не нужно.
@@ -62,7 +63,11 @@ Mod — клавиша Super/Windows. Если комбинации перехв
 | Super+T | Ghostty |
 | Super+B | Firefox |
 | Super+E | Файлы |
-| Super+D | Меню приложений |
+| Super+D | Меню приложений Noctalia |
+| Super+S | Центр управления Noctalia |
+| Super+Shift+S | Настройки Noctalia |
+| Super+Shift+X | Меню выхода / перезагрузки |
+| Super+W | Показать / скрыть панель |
 | Super+Q | Закрыть окно |
 | Super+стрелки | Перемещение фокуса |
 | Super+Ctrl+стрелки | Перемещение окон/колонок |
@@ -77,7 +82,7 @@ Mod — клавиша Super/Windows. Если комбинации перехв
 
 ## Проверка и диагностика
 
-`nix flake check` проверяет синтаксис Niri и JSON панели, а также вычисление NixOS.
+`nix flake check` проверяет синтаксис Niri, а также вычисление NixOS.
 `nixos-rebuild build` собирает всю систему, но не подтверждает работу GPU в ВМ.
 В среде подготовки доступна только статическая проверка файлов — полная сборка и
 проверка входа в сессию должны быть выполнены на ВМ.
@@ -118,3 +123,54 @@ Home Manager создаёт резервные копии конфликтующ
 `.before-niri`. Если такая копия уже существует, переместите её в безопасное место,
 прежде чем повторять активацию. Для возврата пользовательских настроек при
 необходимости восстановите эти копии вручную.
+
+## Noctalia
+
+Используется актуальная Noctalia v5 из официального репозитория noctalia-dev/noctalia,
+коммит 40a82f21ab5f135f4324b1862f7b7732af581856 (из ветки cachix).
+Это текущая версия проекта, ранее известного как Noctalia Shell; v4 на Quickshell —
+отдельная legacy-ветка. Команды v4 `qs -c noctalia-shell` здесь не используются.
+
+У Noctalia отдельный upstream nixpkgs unstable, основная NixOS остаётся 26.05.
+Кеш добавлен с официальным публичным ключом. При первом применении кеш ещё может
+быть не активен в старой системе, поэтому возможна сборка Noctalia из исходников.
+
+Настройки по умолчанию: modules/home/programs/noctalia.nix.
+Home Manager генерирует ~/.config/noctalia/config.toml с проверкой конфигурации при сборке.
+Изменения через интерфейс сохраняются отдельно в ~/.local/state/noctalia/settings.toml
+и могут перекрывать значения из Nix. Автозапуск выполняет только Niri.
+
+Блокировка Noctalia отключена: Super+Shift+L по-прежнему запускает swaylock.
+Polkit обслуживает существующий GNOME agent.
+В ВМ нет физических Wi-Fi/Bluetooth-устройств и батареи; соответствующие функции
+не появятся от одной установки оболочки. NetworkManager и UPower включены.
+
+Обновление уже клонированного проекта (сохраните любые собственные правки коммитом
+перед git pull; локальный flake.lock обычно не мешает, поскольку на сервере его нет):
+
+```bash
+cd ~/niri
+git pull --ff-only
+nix --extra-experimental-features "nix-command flakes" flake lock
+git add flake.lock
+nix --extra-experimental-features "nix-command flakes" flake check
+sudo nixos-rebuild build --flake .#niri-vm
+sudo nixos-rebuild boot --flake .#niri-vm
+sudo reboot
+```
+
+Диагностика в работающей сессии:
+
+```bash
+noctalia msg status
+noctalia msg settings-open
+tail -n 100 ~/.cache/noctalia/noctalia.log
+```
+
+Если Noctalia не стартовала, откройте Ghostty (Super+T) и выполните `noctalia`,
+чтобы увидеть ошибку. Для обновления закреплённой версии измените URL в flake.nix
+на нужный коммит; затем выполните flake lock и проверки.
+
+Официальные инструкции:
+https://docs.noctalia.dev/noctalia/getting-started/nixos/
+https://docs.noctalia.dev/noctalia/compositor-settings/niri/

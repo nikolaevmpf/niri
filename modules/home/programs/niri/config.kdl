@@ -147,7 +147,7 @@ layout {
         // You can also change the shadow color and opacity.
         color "#0007"
     }
-    background-color "#1a1b26"
+    background-color "transparent"
 
 }
 hotkey-overlay {
@@ -219,13 +219,15 @@ window-rule {
 }
 
 
-// This line starts waybar, a commonly used bar for Wayland compositors.
-spawn-at-startup "waybar"
-spawn-at-startup "swaync"
+// Noctalia provides the bar, launcher and notifications.
+spawn-at-startup "noctalia"
 spawn-at-startup "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
 spawn-at-startup "ghostty"
 
 binds {
+    Mod+S hotkey-overlay-title="Control center" { spawn "noctalia" "msg" "panel-toggle" "control-center"; }
+    Mod+Shift+S hotkey-overlay-title="Noctalia settings" { spawn "noctalia" "msg" "settings-toggle"; }
+    Mod+Shift+X hotkey-overlay-title="Session menu" { spawn "noctalia" "msg" "panel-toggle" "session"; }
     // "Mod" is a special modifier equal to Super when running on a TTY, and to Alt
     // when running as a winit window.
     // `niri msg action do-something`.
@@ -234,13 +236,13 @@ binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+Shift+O hotkey-overlay-title="toggle opacity" { toggle-window-rule-opacity; }
 
-    Mod+W hotkey-overlay-title="toggle waybar" repeat=false { spawn-sh "pkill -SIGUSR1 waybar || waybar"; }
+    Mod+W hotkey-overlay-title="Toggle Noctalia bar" repeat=false { spawn "noctalia" "msg" "bar-toggle"; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+T hotkey-overlay-title="Open a Terminal " { spawn "ghostty"; }
     Mod+B hotkey-overlay-title="Open a Browser " { spawn "firefox"; }
     Mod+E hotkey-overlay-title="Open a FileManager " { spawn "nautilus"; }
-    Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "wofi --show drun"; }
+    Mod+D hotkey-overlay-title="Run an Application" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Super+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "swaylock "; }
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -470,6 +472,16 @@ binds {
     Mod+Shift+P { power-off-monitors; }
 }
 layer-rule {
+    match namespace="^noctalia-wallpaper"
     place-within-backdrop true
 }
 
+
+// Keep settings within the virtual display rather than tiling them.
+window-rule {
+    match app-id="dev.noctalia.Noctalia"
+    open-floating true
+}
+debug {
+    honor-xdg-activation-with-invalid-serial
+}

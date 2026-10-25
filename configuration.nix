@@ -33,6 +33,12 @@
   services.spice-vdagentd.enable = true;
   services.openssh.enable = true;
   services.gvfs.enable = true;
+  services.upower.enable = true;
+  # Official upstream binary cache for the separately pinned Noctalia package.
+  nix.settings.extra-substituters = [ "https://noctalia.cachix.org" ];
+  nix.settings.extra-trusted-public-keys = [
+    "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+  ];
   services.pipewire = {
     enable = true;
     alsa.enable = true;
