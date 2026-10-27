@@ -5,6 +5,7 @@
     ./network.nix
     ./users.nix
     ./tools.nix
+    ./opencode.nix
     ./maintenance.nix
     ./cleanup.nix
   ];
